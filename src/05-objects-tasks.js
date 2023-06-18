@@ -20,8 +20,12 @@
  *    console.log(r.height);      // => 20
  *    console.log(r.getArea());   // => 200
  */
-function Rectangle(/* width, height */) {
-  throw new Error('Not implemented');
+function Rectangle(width, height) {
+  this.width = width;
+  this.height = height;
+  this.getArea = function getArea() {
+    return this.width * this.height;
+  };
 }
 
 
@@ -35,8 +39,8 @@ function Rectangle(/* width, height */) {
  *    [1,2,3]   =>  '[1,2,3]'
  *    { width: 10, height : 20 } => '{"height":10,"width":20}'
  */
-function getJSON(/* obj */) {
-  throw new Error('Not implemented');
+function getJSON(obj) {
+  return JSON.stringify(obj);
 }
 
 
@@ -51,10 +55,19 @@ function getJSON(/* obj */) {
  *    const r = fromJSON(Circle.prototype, '{"radius":10}');
  *
  */
-function fromJSON(/* proto, json */) {
-  throw new Error('Not implemented');
-}
 
+function fromJSON(proto, json) {
+  const ourObj = JSON.parse(json);
+  const keys = Object.keys(ourObj);
+  const values = [];
+  keys.map((elem) => values.push(ourObj[elem]));
+  const obj = Object.create(proto);
+  keys.map((element) => {
+    obj[element] = ourObj[element];
+    return element;
+  });
+  return obj;
+}
 
 /**
  * Css selectors builder
@@ -107,36 +120,85 @@ function fromJSON(/* proto, json */) {
  *  ).stringify()
  *    => 'div#main.container.draggable + table#data ~ tr:nth-of-type(even)   td:nth-of-type(even)'
  *
- *  For more examples see unit tests.
- */
+ *  For more examples see unit tests. */
+
 
 const cssSelectorBuilder = {
-  element(/* value */) {
-    throw new Error('Not implemented');
+  selector: '',
+  elem: 0,
+  aidi: 0,
+  pseudo: 0,
+  position: 0,
+
+
+  isError(nowPos) {
+    if (this.position > nowPos) {
+      throw new Error('Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element');
+    }
   },
 
-  id(/* value */) {
-    throw new Error('Not implemented');
+  addText(value, mark) {
+    const select = { ...this };
+    this.isError(mark);
+    select.position = mark;
+    switch (mark) {
+      case 1:
+        if (select.elem > 0) {
+          throw new Error('Element, id and pseudo-element should not occur more then one time inside the selector');
+        } else {
+          select.elem = 1;
+        }
+        break;
+      case 2: if (select.aidi > 0) {
+        throw new Error('Element, id and pseudo-element should not occur more then one time inside the selector');
+      } else {
+        select.aidi = 1;
+      } break;
+      case 6:
+        if (select.pseudo > 0) {
+          throw new Error('Element, id and pseudo-element should not occur more then one time inside the selector');
+        } else {
+          select.pseudo = 1;
+        }
+        break;
+      default: break;
+    }
+    select.selector = this.selector + value;
+    return select;
   },
 
-  class(/* value */) {
-    throw new Error('Not implemented');
+  stringify() {
+    return this.selector;
   },
 
-  attr(/* value */) {
-    throw new Error('Not implemented');
+  element(value) {
+    return this.addText(value, 1);
   },
 
-  pseudoClass(/* value */) {
-    throw new Error('Not implemented');
+  id(value) {
+    return this.addText(`#${value}`, 2);
   },
 
-  pseudoElement(/* value */) {
-    throw new Error('Not implemented');
+  class(value) {
+    return this.addText(`.${value}`, 3);
   },
 
-  combine(/* selector1, combinator, selector2 */) {
-    throw new Error('Not implemented');
+  attr(value) {
+    return this.addText(`[${value}]`, 4);
+  },
+
+  pseudoClass(value) {
+    return this.addText(`:${value}`, 5);
+  },
+
+  pseudoElement(value) {
+    return this.addText(`::${value}`, 6);
+  },
+
+  combine(selector1, combinator, selector2) {
+    const select = { ...this };
+    select.selector = `${selector1.selector} ${combinator} ${selector2.selector}`;
+    return select;
   },
 };
 
